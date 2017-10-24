@@ -1,5 +1,3 @@
-
-
 #!/bin/bash
 
 # Mit dem Bash-Skript MediaTerm lassen sich Filme aus den Mediatheken
@@ -41,7 +39,7 @@ datum2=31.12.9999   #fiktive obere Zeitgrenze bei Nichtnutzung der Option -e
 
 #### OPTIONEN
 
-while getopts ":bd:e:ghHlnostuvw" opt; do
+while getopts ":bd:e:ghHklnostuvwq" opt; do
     case $opt in
         b)
             bopt=1
@@ -59,6 +57,9 @@ while getopts ":bd:e:ghHlnostuvw" opt; do
         h)
             hopt=1
             ;;
+	h)
+            kopt=1
+            ;;
         l)
             lopt=1
             player="mpv --really-quiet --ytdl"
@@ -68,6 +69,9 @@ while getopts ":bd:e:ghHlnostuvw" opt; do
             ;;
         o)
             oopt=1
+            ;;
+        q)
+            qopt=1
             ;;
         s)
             sopt=1
@@ -134,10 +138,10 @@ ${fett}VORAUSSETZUNGEN FUER DAS FUNKTIONIEREN DES SKRIPTS:${normal}
       Empfohlen wird außerdem youtube-dl in einer aktuellen Version. 
 
 ${fett}AUFRUF:${normal}
-      mediaterm [-d DATUM|-e DATUM|-g|-n|-o|-s|-t|-w] [+]Suchstring1 [[+|~]Suchstring2 ...]
+      mediaterm [-d DATUM|-e DATUM|-g|-n|-o|-s|-t|-w|-k] [+]Suchstring1 [[+|~]Suchstring2 ...]
       mediaterm -l[n|o|w]
       mediaterm -b
-      mediaterm -u
+      mediaterm -u[q]
       mediaterm -v
       mediaterm -h
 
@@ -149,9 +153,11 @@ ${fett}OPTIONEN:${normal}
       ${fett}-e DATUM${normal}   Sucht nur Sendungen älter als DATUM (und vom DATUM); DATUM muss im Format [[TT.]MM.]JJJJ eingegeben werden.
       ${fett}-g${normal}   Unterscheidet bei der Suche zwischen Groß- und Kleinbuchstaben.
       ${fett}-h${normal}   Zeigt diese Hilfe an.
+      ${fett}-k${normal}   Generiert eine .nfo datei, die von Kodi gelesen werden kann.
       ${fett}-l${normal}   Listet alle Livestreams auf (Suchstrings werden nicht berücksichtigt).
       ${fett}-n${normal}   Gibt die Ergebnisliste ohne interne Kommandozeile aus.
       ${fett}-o${normal}   Gibt die Ergebnisliste ohne Farben aus.
+      ${fett}-q${normal}   Update der Filmliste ohne interne Nachfrage.
       ${fett}-s${normal}   Sortiert Suchtreffer absteigend nach Sendedatum (neueste zuoberst).
       ${fett}-t${normal}   Sortiert Suchtreffer aufsteigend nach Sendedatum (neueste zuunterst).
       ${fett}-u${normal}   Aktualisiert die Filmliste.
@@ -218,7 +224,8 @@ function hits {
             awk -F "\",\"" '{ORS=" "}; {print "("NR")", "\033[0;32m"$4"\033[0m"" ("$1": "$3")"}; {if($14!=""){printf "[n"} else{printf "[-"}}; {if($16!=""){print "/h]"} else{print "/-]"}}; {print "\n"  "\33[1m""Datum:""\033[0m",$5  ",",  $6,"Uhr","*",  "\33[1m""Dauer:""\033[0m",  $7,"\n" $9,  "\n" "\033[0;34m"$10"\033[0m"} {printf "\n\n"}' | \
             ( if [ ! -z $oopt ]; then sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"; else tee; fi ) |   #Entfernt Farbformatierungen bei Option -o \
             tr -d '\\' |   #Entfernt Escape-Backslashes aus Ausgabe \
-            ( if [[ -z $wopt ]]; then fmt -s -w $(tput cols); else tee; fi )   #Worterhaltende Zeilenumbrüche (außer bei Option -w)
+            ( if [[ -z $wopt ]]; then fmt -s -w $(tput cols); else tee; fi ) |  #Worterhaltende Zeilenumbrüche (außer bei Option -w)
+            ( if [[ -z $kopt ]]; then awk '{print $0, "| COUNTRY"}' | tee; else tee; fi ) #Writes .nfo file for kodi
     fi
 
 echo "[Suchanfrage:$suchanfrage]" #Anzeige der Suchanfrage unter der Trefferliste
@@ -634,8 +641,12 @@ fi
 
 #### Herunterladen der Filmliste (falls nicht vorhanden oder bei Option -u)
 if [[ ! -f $dir/filmliste  || ! -z $uopt ]]; then
-    read -p "Soll die aktuelle Filmliste heruntergeladen und im Verzeichnis $dir (wird ggf. vom Programm angelegt) gespeichert werden? (J/n)" antwort
-    echo
+    if [[ -z $qopt ]]; then
+        read -p "Soll die aktuelle Filmliste heruntergeladen und im Verzeichnis $dir (wird ggf. vom Programm angelegt) gespeichert werden? (J/n)" antwort
+        echo
+    else
+        antwort="J"
+    fi
 
     # Fall: Download-Frage bejaht
     if [[ $antwort = J || $antwort = j || -z $antwort ]]; then
@@ -738,5 +749,3 @@ hits   #Funktion hits
 
 #### Filme abspielen, herunterladen, als Bookmark speichern (interne Kommandozeile)
 icli   #Funktion icli
-
-
