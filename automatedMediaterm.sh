@@ -1,5 +1,5 @@
 #!/bin/bash
-
+cd ~/MediaTerm/
 #updated list avaliable videos
 ./mediaterm.sh -uq
 
@@ -10,9 +10,12 @@ do
        	wget --limit-rate 600k -nc $line -P ~/Videos/mediaterm/
 done
 
-./mediaterm.sh -sngow "Kurzschluss - Das Magazin" | grep http | while read line
+./mediaterm.sh -sngow "Kurzschluss - " | grep http | while read line
 do
+	
+	IFS='|' read -a myarray <<< "$line"
         #download found file if there is no file with the same name in the destination folder
-        wget --limit-rate 600k -nc $line -P ~/Videos/mediaterm/Kurzschluss/
+        echo downalodaing ${myarray[0]}
+	wget --limit-rate 600k -nc ${myarray[0]} -P ~/Videos/mediaterm/Kurzschluss/
 done
 
